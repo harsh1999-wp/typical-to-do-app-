@@ -21,15 +21,13 @@ public class TodoController {
         this.todoService = todoService;
     }
 
-    //createtodo
+    //create todo
     @PostMapping("/create")
     public ResponseEntity<ResponseTodoDto> createTodo(@RequestBody CreateTodoDto createTodoDto){
         ResponseTodoDto todoResponse = todoService.createTodoDto(createTodoDto);
 
         return  ResponseEntity.ok().body(todoResponse);
     }
-
-
 
 
     //gettodobyid
@@ -61,11 +59,14 @@ public class TodoController {
 
     //UpdateTodo
     @PatchMapping("/{id}")
-    public ResponseEntity<Todo> updateTodo(@PathVariable Long id ,@RequestBody  UpdateTodoDto updateTodoDto){
+    public ResponseEntity<ResponseTodoDto> updateTodo(
+            @PathVariable Long id,
+            @RequestBody UpdateTodoDto updateTodoDto) {
 
-        Todo todoDto = todoService.updateTodo(id , updateTodoDto);
+        ResponseTodoDto response =
+                todoService.updateTodo(id, updateTodoDto);
 
-        return ResponseEntity.ok(todoDto);
+        return ResponseEntity.ok(response);
     }
 
     @DeleteMapping("/{id}")

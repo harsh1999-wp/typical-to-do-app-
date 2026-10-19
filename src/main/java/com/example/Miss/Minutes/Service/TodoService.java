@@ -5,6 +5,8 @@ import com.example.Miss.Minutes.Dto.CreateTodoDto;
 import com.example.Miss.Minutes.Dto.ResponseTodoDto;
 import com.example.Miss.Minutes.Dto.UpdateTodoDto;
 import com.example.Miss.Minutes.Entity.Todo;
+import com.example.Miss.Minutes.Exception.TodoNotFoundException;
+import com.example.Miss.Minutes.Exception.TodoValidationFailed;
 import com.example.Miss.Minutes.Repository.TodoRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
@@ -22,9 +24,19 @@ public class TodoService {
         this.todoRepository = todoRepository;
     }
 
-    @Transactional
-    public ResponseTodoDto createTodoDto(CreateTodoDto createTodoDto ){
 
+    @Transactional
+    public ResponseTodoDto createTodoDto(CreateTodoDto createTodoDto) {
+
+        if (createTodoDto.getTitle() == null
+                || createTodoDto.getTitle().isBlank()
+                || createTodoDto.getDescription() == null
+                || createTodoDto.getDescription().isBlank()) {
+
+            throw new TodoValidationFailed(
+                    "Please enter the required fields"
+            );
+        }
 
         Todo saveTodo = mapToEntity(createTodoDto);
 
@@ -33,10 +45,11 @@ public class TodoService {
         return mapToDto(dtoRequest);
     }
 
+
     //getting Todobyid
     public ResponseTodoDto getById(Long id){
 
-        Todo todo = todoRepository.findById(id).orElseThrow(() -> new RuntimeException("Todo not found"));
+        Todo todo = todoRepository.findById(id).orElseThrow(() -> new TodoNotFoundException("Todo not found " + id ));
 
         return mapToDto(todo);
     }
@@ -65,19 +78,36 @@ public class TodoService {
     }
 
     //update task
-    public Todo updateTodo(Long id , UpdateTodoDto updateTodoDto){
+    public ResponseTodoDto updateTodo(Long id, UpdateTodoDto updateTodoDto) {
+
+        System.out.println("Incoming completed: "
+                + updateTodoDto.getCompleted());
+
+        Todo existingTodo = todoRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Todo not found"));
 
 
-        Todo existingTodo = todoRepository.findById(id).orElseThrow(
-                () ->new RuntimeException("Todo not found")
-        );
 
-        existingTodo.setTitle(updateTodoDto.getTitle());
-        existingTodo.setDescription(updateTodoDto.getDescription());
-        existingTodo.setCompleted(updateTodoDto.isCompleted());
 
-        return todoRepository.save(existingTodo);
+        if (updateTodoDto.getTitle() != null) {
+            existingTodo.setTitle(updateTodoDto.getTitle());
+        }
 
+        if (updateTodoDto.getDescription() != null) {
+            existingTodo.setDescription(updateTodoDto.getDescription());
+        }
+
+        if (updateTodoDto.getCompleted() != null) {
+            existingTodo.setCompleted(updateTodoDto.getCompleted());
+        }
+
+        System.out.println("Before save: " + existingTodo.getCompleted());
+
+        Todo savedTodo = todoRepository.save(existingTodo);
+
+        System.out.println("After save: " + savedTodo.getCompleted());
+
+        return mapToDto(savedTodo);
     }
 
     //delete
@@ -101,16 +131,8 @@ public class TodoService {
 
     }
 
-    //Mapping Dto to Entity
-    public ResponseTodoDto mapToDto(Todo todo){
 
-        ResponseTodoDto responseTodoDto = new ResponseTodoDto();
 
-        responseTodoDto.setTitle(todo.getTitle());
-        responseTodoDto.setDescription(todo.getDescription());
-
-        return responseTodoDto;
-    }
 
     //Mapping updated to  Entity
     public  Todo mapToUpdateEntity(UpdateTodoDto updateTodoDto){
@@ -122,5 +144,18 @@ public class TodoService {
         todo.setCompleted(updateTodoDto.isCompleted());
 
         return todo;
+    }
+
+    //Mapping Dto to Entity
+    public ResponseTodoDto mapToDto(Todo todo) {
+        ResponseTodoDto dto = new ResponseTodoDto();
+
+        dto.setId(todo.getId());
+        dto.setTitle(todo.getTitle());
+        dto.setDescription(todo.getDescription());
+        dto.setCompleted(todo.getCompleted());
+        dto.setCreatedAt(todo.getCreatedAt());
+
+        return dto;
     }
 }
